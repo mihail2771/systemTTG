@@ -99,6 +99,12 @@
                     <div id="circle-filters" class="grid grid-cols-4 gap-1">
                         </div>
                 </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-amber-200/70 tracking-wider uppercase mb-2 font-magical">Фильтр по школе</label>
+                    <div id="school-filters" class="flex flex-wrap gap-1.5">
+                        </div>
+                </div>
             </div>
 
             <div id="sidebar-races-controls" class="hidden flex flex-col gap-4">
@@ -222,6 +228,22 @@ Promise.all([loadSpells(), loadRaces(), loadClasses()]).then(() => {
             "Тьма / Некромантия": "text-emerald-400 bg-emerald-950/40 border-emerald-900/50",
             "Любая": "text-slate-300 bg-slate-800/40 border-slate-700/50"
         };
+        const schoolColors = {
+            "Проклятия": "text-red-400 bg-red-950/40 border-red-900/50",
+            "Контроль": "text-cyan-400 bg-cyan-950/40 border-cyan-900/50",
+            "Иллюзия": "text-purple-400 bg-purple-950/40 border-purple-900/50",
+            "Усиление": "text-yellow-400 bg-yellow-950/40 border-yellow-900/50",
+            "Восстановление": "text-green-400 bg-green-950/40 border-green-900/50",
+            "Прорицание": "text-blue-400 bg-blue-950/40 border-blue-900/50",
+            "Разрушение": "text-rose-400 bg-rose-950/40 border-rose-900/50",
+            "Трансмутация": "text-lime-400 bg-lime-950/40 border-lime-900/50",
+            "Преграждение": "text-indigo-400 bg-indigo-950/40 border-indigo-900/50",
+            "Некромантия": "text-emerald-400 bg-emerald-950/40 border-emerald-900/50",
+            "Призыв": "text-amber-400 bg-amber-950/40 border-amber-900/50",
+            "Инверсионная": "text-teal-400 bg-teal-950/40 border-teal-900/50",
+            "Псионика": "text-pink-400 bg-pink-950/40 border-pink-900/50",
+            "Очарование": "text-fuchsia-400 bg-fuchsia-950/40 border-fuchsia-900/50",
+        };
     </script>
 
     <script>
@@ -232,12 +254,23 @@ Promise.all([loadSpells(), loadRaces(), loadClasses()]).then(() => {
             groupBy: 'circle', // 'circle' или 'element'
             selectedElements: [], // Массив выбранных стихий
             selectedCircles: [], // Массив выбранных кругов
+            selectedSchools: [], // Массив выбранных школ
             selectedRace: null, // ID выбранной расы
             selectedClass: null, // ID выбранного класса
             onlyFavorites: false,
             favorites: JSON.parse(localStorage.getItem('grimoire_favs')) || [],
             expandedSpells: [],
             expandedRules: []
+        };
+
+        // Хелпер для правильного склонения слов
+        function pluralize(count, forms) { // [один, несколько, много], например ['класс', 'класса', 'классов']
+            const n = Math.abs(count) % 100;
+            const n1 = n % 10;
+            if (n > 10 && n < 20) return forms[2];
+            if (n1 > 1 && n1 < 5) return forms[1];
+            if (n1 === 1) return forms[0];
+            return forms[2];
         };
 
         // Запуск при загрузке
@@ -263,6 +296,16 @@ Promise.all([loadSpells(), loadRaces(), loadClasses()]).then(() => {
                 <button onclick="toggleCircleFilter('${c}')" id="filter-circ-${c}" 
                         class="text-xs py-1.5 rounded border transition-all duration-150 ${c === 'ALL' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'}">
                     ${c === 'ALL' ? 'Все' : c}
+                </button>
+            `).join('');
+
+            // Извлекаем уникальные школы
+            const schools = ['ALL', ...new Set(spellsData.map(s => s.school))];
+            const schoolContainer = document.getElementById('school-filters');
+            schoolContainer.innerHTML = schools.map(sc => `
+                <button onclick="toggleSchoolFilter('${sc}')" id="filter-school-${sc}"
+                        class="text-xs px-2.5 py-1 rounded-md border transition-all duration-150 ${sc === 'ALL' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'}">
+                    ${sc === 'ALL' ? 'Все школы' : sc}
                 </button>
             `).join('');
         }
@@ -320,10 +363,13 @@ Promise.all([loadSpells(), loadRaces(), loadClasses()]).then(() => {
                 
                 // Если не выбраны круги - показываем все, иначе только выбранные
                 const matchesCircle = state.selectedCircles.length === 0 || state.selectedCircles.map(c => c.toString()).includes(spell.circle.toString());
+
+                // Если не выбраны школы - показываем все, иначе только выбранные
+                const matchesSchool = state.selectedSchools.length === 0 || state.selectedSchools.includes(spell.school);
                 
                 const matchesFav = !state.onlyFavorites || state.favorites.includes(spell.id);
 
-                return matchesSearch && matchesElement && matchesCircle && matchesFav;
+                return matchesSearch && matchesElement && matchesCircle && matchesSchool && matchesFav;
             });
 
             if (filtered.length === 0) {
@@ -376,6 +422,7 @@ Promise.all([loadSpells(), loadRaces(), loadClasses()]).then(() => {
             const isExpanded = state.expandedSpells.includes(spell.id);
             const isFav = state.favorites.includes(spell.id);
             const badgeColor = elementColors[spell.element] || "text-slate-400 bg-slate-900 border-slate-800";
+            const schoolColor = schoolColors[spell.school] || "text-slate-400 bg-slate-900 border-slate-800";
 
             return `
                 <div class="bg-[#111827]/60 hover:bg-[#151f33]/80 border ${isExpanded ? 'border-amber-600/40 shadow-md shadow-amber-950/10' : 'border-slate-800/80'} rounded-xl transition-all duration-200 overflow-hidden">
@@ -390,7 +437,7 @@ Promise.all([loadSpells(), loadRaces(), loadClasses()]).then(() => {
                                     <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded border ${badgeColor}">
                                         ${spell.element}
                                     </span>
-                                    <span class="text-xs text-slate-500 font-medium">${spell.school}</span>
+                                    <span class="text-xs font-medium px-2 py-0.5 rounded border ${schoolColor}">${spell.school}</span>
                                 </div>
                             </div>
                         </div>
@@ -492,9 +539,7 @@ Promise.all([loadSpells(), loadRaces(), loadClasses()]).then(() => {
                     `;
                 } else {
                     classList.innerHTML = `
-                        <div class="text-[10px] text-slate-400 px-2 py-1 mb-2">
-                            ${filtered.length} класс${filtered.length % 10 === 1 && filtered.length !== 11 ? '' : filtered.length % 10 < 5 && filtered.length % 10 > 1 && (filtered.length < 10 || filtered.length > 20) ? 'а' : 'ов'}
-                        </div>
+                        <div class="text-[10px] text-slate-400 px-2 py-1 mb-2">${filtered.length} ${pluralize(filtered.length, ['класс', 'класса', 'классов'])}</div>
                         ${filtered.map(cls => `
                             <button 
                                 onclick="selectClass('${cls.id}')" 
@@ -622,9 +667,7 @@ Promise.all([loadSpells(), loadRaces(), loadClasses()]).then(() => {
                     `;
                 } else {
                     racesList.innerHTML = `
-                        <div class="text-[10px] text-slate-400 px-2 py-1 mb-2">
-                            ${filtered.length} расс${filtered.length % 10 === 1 && filtered.length !== 11 ? 'а' : filtered.length % 10 < 5 && filtered.length % 10 > 1 && (filtered.length < 10 || filtered.length > 20) ? 'ы' : ''}
-                        </div>
+                        <div class="text-[10px] text-slate-400 px-2 py-1 mb-2">${filtered.length} ${pluralize(filtered.length, ['раса', 'расы', 'рас'])}</div>
                         ${filtered.map(race => `
                             <button 
                                 onclick="selectRace('${race.id}')" 
@@ -795,6 +838,19 @@ Promise.all([loadSpells(), loadRaces(), loadClasses()]).then(() => {
             render();
         }
 
+        function toggleSchoolFilter(sc) {
+            if (sc === 'ALL') {
+                state.selectedSchools = [];
+            } else {
+                if (state.selectedSchools.includes(sc)) {
+                    state.selectedSchools = state.selectedSchools.filter(s => s !== sc);
+                } else {
+                    state.selectedSchools.push(sc);
+                }
+            }
+            render();
+        }
+
         function toggleOnlyFavorites() {
             state.onlyFavorites = !state.onlyFavorites;
             const btn = document.getElementById('fav-toggle');
@@ -866,6 +922,21 @@ Promise.all([loadSpells(), loadRaces(), loadClasses()]).then(() => {
                         cBtn.className = "text-xs py-1.5 rounded border transition-all duration-150 bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm shadow-amber-950/50";
                     } else {
                         cBtn.className = "text-xs py-1.5 rounded border transition-all duration-150 bg-slate-950 text-slate-400 border-slate-800/80 hover:border-slate-700";
+                    }
+                }
+            });
+
+            // Школы
+            const schools = ['ALL', ...new Set(spellsData.map(s => s.school))];
+            schools.forEach(sc => {
+                const scBtn = document.getElementById(`filter-school-${sc}`);
+                if(scBtn) {
+                    if(sc === 'ALL' && state.selectedSchools.length === 0) {
+                        scBtn.className = "text-xs px-2.5 py-1 rounded-md border transition-all duration-150 bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm shadow-amber-950/50";
+                    } else if(sc !== 'ALL' && state.selectedSchools.includes(sc)) {
+                        scBtn.className = "text-xs px-2.5 py-1 rounded-md border transition-all duration-150 bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm shadow-amber-950/50";
+                    } else {
+                        scBtn.className = "text-xs px-2.5 py-1 rounded-md border transition-all duration-150 bg-slate-950 text-slate-400 border-slate-800/80 hover:border-slate-700";
                     }
                 }
             });
