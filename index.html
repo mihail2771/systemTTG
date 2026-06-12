@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Архив Гримуара — Цифровая Панель Магии</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #070b12;
+        }
+        .font-magical {
+            font-family: 'Cinzel', serif;
+        }
+        /* Кастомный скроллбар в стиле темного фэнтези */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b121f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #27374d;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3e54ac;
+        }
+    </style>
+</head>
+<body class="text-slate-300 min-h-screen flex flex-col selection:bg-amber-500/30 selection:text-amber-200">
+
+    <header class="sticky top-0 z-50 bg-[#0b132b]/90 backdrop-blur-md border-b border-amber-900/30 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-lg shadow-black/40">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-purple-700 flex items-center justify-center shadow-md shadow-amber-500/20">
+                <span class="text-black font-bold font-magical">Ω</span>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold font-magical tracking-wider text-amber-100">DIGITAL GRIMOIRE</h1>
+                <p class="text-xs text-slate-400 font-mono">Система KL • Магический Дашборд</p>
+            </div>
+        </div>
+        
+        <div class="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+            <button id="tab-spells" onclick="switchTab('spells')" class="px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-amber-500/10 text-amber-300 border border-amber-500/20 shadow-sm">
+                🔮 Книга Заклинаний
+            </button>
+            <button id="tab-races" onclick="switchTab('races')" class="px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200">
+                👥 Архив Рас
+            </button>
+            <button id="tab-classes" onclick="switchTab('classes')" class="px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200">
+                👤 Классы
+            </button>
+            <button id="tab-rules" onclick="switchTab('rules')" class="px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200">
+                📜 Справочник Правил
+            </button>
+        </div>
+    </header>
+
+    <div class="flex-1 flex flex-col md:flex-row max-w-[1920px] w-full mx-auto">
+        
+        <aside class="w-full md:w-80 bg-[#0d1527] border-b md:border-b-0 md:border-r border-slate-900 p-6 flex flex-col gap-6 md:h-[calc(100vh-73px)] md:sticky md:top-[73px] overflow-y-auto">
+            
+            <div>
+                <label class="block text-xs font-semibold text-amber-200/70 tracking-wider uppercase mb-2 font-magical">Поиск Истины</label>
+                <div class="relative">
+                    <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="Название или ключевое слово..." 
+                           class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500/50 transition-colors">
+                </div>
+            </div>
+
+            <div id="sidebar-spell-controls" class="flex flex-col gap-6">
+                <div>
+                    <label class="block text-xs font-semibold text-amber-200/70 tracking-wider uppercase mb-2 font-magical">Группировка данных</label>
+                    <div class="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                        <button onclick="setGroupBy('circle')" id="group-circle" class="text-xs py-1.5 rounded bg-slate-900 text-amber-300 font-medium shadow border border-slate-800">По Кругам</button>
+                        <button onclick="setGroupBy('element')" id="group-element" class="text-xs py-1.5 rounded text-slate-400 hover:text-slate-200 font-medium">По Стихиям</button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-800">
+                    <span class="text-xs font-medium text-slate-300">Только Избранное (*)</span>
+                    <button id="fav-toggle" onclick="toggleOnlyFavorites()" class="w-9 h-5 bg-slate-800 rounded-full p-0.5 transition-colors duration-200 focus:outline-none relative">
+                        <div class="w-4 h-4 bg-slate-400 rounded-full transition-transform duration-200 shadow-md"></div>
+                    </button>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-amber-200/70 tracking-wider uppercase mb-2 font-magical">Фильтр Стихий</label>
+                    <div id="element-filters" class="flex flex-wrap gap-1.5">
+                        </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-amber-200/70 tracking-wider uppercase mb-2 font-magical">Фильтр Кругов</label>
+                    <div id="circle-filters" class="grid grid-cols-4 gap-1">
+                        </div>
+                </div>
+            </div>
+
+            <div id="sidebar-races-controls" class="hidden flex flex-col gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-amber-200/70 tracking-wider uppercase mb-2 font-magical">Выбор Расы</label>
+                    <div id="races-list" class="flex flex-col gap-1 max-h-96 overflow-y-auto bg-slate-950 p-2 rounded-lg border border-slate-800">
+                        <!-- Список рас будет вставлен здесь -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="sidebar-classes-controls" class="hidden flex flex-col gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-amber-200/70 tracking-wider uppercase mb-2 font-magical">Выбор Класса</label>
+                    <div id="classes-list" class="flex flex-col gap-1 max-h-96 overflow-y-auto bg-slate-950 p-2 rounded-lg border border-slate-800">
+                        <!-- Список классов будет вставлен здесь -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-auto pt-4 border-t border-slate-900 text-[11px] text-slate-500 font-mono flex justify-between">
+                <span>Статус ядра: Активно</span>
+                <span>v1.0-SPA</span>
+            </div>
+        </aside>
+
+        <main class="flex-1 p-6 lg:p-8 bg-[#090d16] min-h-0 overflow-y-auto">
+            <div id="main-content-area">
+                </div>
+        </main>
+
+    </div>
+
+    <script>
+        let spellsData = [];
+        let racesData = [];
+        let classesData = [];
+
+async function loadSpells() {
+    try {
+        const response = await fetch('./spells.json');
+        spellsData = await response.json();
+        
+        console.log('Данные о заклинаниях успешно загружены:', spellsData);
+
+    } catch (error) {
+        console.error('Ошибка при загрузке спеллов:', error);
+    }
+}
+
+async function loadRaces() {
+    try {
+        const response = await fetch('./races.json');
+        racesData = await response.json();
+        
+        console.log('Данные о расах успешно загружены:', racesData);
+
+    } catch (error) {
+        console.error('Ошибка при загрузке рас:', error);
+    }
+}
+
+async function loadClasses() {
+    try {
+        const response = await fetch('./classes.json');
+        classesData = await response.json();
+        
+        console.log('Данные о классах успешно загружены:', classesData);
+
+    } catch (error) {
+        console.error('Ошибка при загрузке классов:', error);
+    }
+}
+
+// Запускаем загрузку
+Promise.all([loadSpells(), loadRaces(), loadClasses()]).then(() => {
+    console.log('Все данные загружены');
+    initFilters();
+    render();
+});
+
+        // Извлеченный контент общих правил из Core_Rules.pdf
+        const rulesData = [
+            {
+                category: "1. Создание персонажа и Прокачка",
+                sections: [
+                    {
+                        title: "Поинты и Классы",
+                        content: "Всего у персонажа имеется 100 уровней (включая нулевой). Любой класс не превышает 15 уровней. При повышении уровня дается 1 поинт прокачки, который можно вложить в текущий или новый открытый класс. На старте (0 уровень) доступно 76 поинтов характеристик."
+                    },
+                    {
+                        title: "Основные Статы (Характеристики)",
+                        content: "Всего существует 10 характеристик:\n• Сила — физическая мощь.\n• Ловкость — скорость, скрытность, ловкость рук.\n• Мудрость — знания, внимательность, сила магии.\n• Интеллект — создание предметов/заклинаний (для маг. классов).\n• Харизма — дипломатия, привлекательность, сила магии."
+                    },
+                    {
+                        title: "Вторичные Характеристики боевой системы",
+                        content: "• Живучесть — дает +3 ОЗ за уровень стата (масштабируется от ранга).\n• Выносливость — каждое четное значение дает +1 сверх-действие (до 20).\n• Энергия — каждое четное значение дает 1 базовую энергию (Ману) до 20, влияет на силу заклинаний.\n• Разум — ментальная стойкость заклинателя."
+                    }
+                ]
+            },
+            {
+                category: "2. Механика Сеттинга Магии",
+                sections: [
+                    {
+                        title: "Система Ячеек Магии",
+                        content: "В системе используется жесткая ячеистая структура. Чтобы сотворить заклинание, тратятся ячейки. Существует 7 уровней ячеек:\n• Базовый (1 ячейка = 2 единицы энергии в статах)\n• Подмастерьевый (1 подмаст. = 5 базовых ячеек)\n• Мастер (1 мастер = 10 подмастерьевых / 50 базовых)\n• Великие (1 великая = 5 мастерских / 250 базовых)\n• Звездные (1 звездная = 10 великих / 2500 базовых)"
+                    },
+                    {
+                        title: "Высшие Ступени и Специфические Стихии",
+                        content: "Система магии масштабируется по Ступеням:\n• 7 Ступень: Ад, Рай, Закон\n• 8 Ступень: Вирус, Смерть, Мутация\n• 9 Ступень: Созерцание, Разрушение, Равновесие\n• 10 Ступень: Время, Пространство, Реальность\n• 11 Ступень: Душа, Судьба, Тело"
+                    }
+                ]
+            }
+        ]
+        // Цветовая карта стихий для красивых тегов в стиле Dark Fantasy
+        const elementColors = {
+            "Огонь": "text-orange-400 bg-orange-950/40 border-orange-900/50",
+            "Вода": "text-blue-400 bg-blue-950/40 border-blue-900/50",
+            "Земля": "text-amber-600 bg-amber-950/30 border-amber-900/40",
+            "Нулевая": "text-purple-400 bg-purple-950/40 border-purple-900/50",
+            "Тьма / Некромантия": "text-emerald-400 bg-emerald-950/40 border-emerald-900/50",
+            "Любая": "text-slate-300 bg-slate-800/40 border-slate-700/50"
+        };
+    </script>
+
+    <script>
+        // Текущее состояние (State) приложения
+        let state = {
+            activeTab: 'spells', // 'spells', 'races', 'classes' или 'rules'
+            searchQuery: '',
+            groupBy: 'circle', // 'circle' или 'element'
+            selectedElements: [], // Массив выбранных стихий
+            selectedCircles: [], // Массив выбранных кругов
+            selectedRace: null, // ID выбранной расы
+            selectedClass: null, // ID выбранного класса
+            onlyFavorites: false,
+            favorites: JSON.parse(localStorage.getItem('grimoire_favs')) || [],
+            expandedSpells: [],
+            expandedRules: []
+        };
+
+        // Запуск при загрузке
+        window.onload = function() {
+            // Данные и фильтры инициализируются в Promise.all после загрузки
+        };
+
+        function initFilters() {
+            // Извлекаем уникальные стихии
+            const elements = ['ALL', ...new Set(spellsData.map(s => s.element))];
+            const elemContainer = document.getElementById('element-filters');
+            elemContainer.innerHTML = elements.map(el => `
+                <button onclick="toggleElementFilter('${el}')" id="filter-el-${el}" 
+                        class="text-xs px-2.5 py-1 rounded-md border transition-all duration-150 ${el === 'ALL' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'}">
+                    ${el === 'ALL' ? 'Все стихии' : el}
+                </button>
+            `).join('');
+
+            // Извлекаем уникальные круги
+            const circles = ['ALL', ...new Set(spellsData.map(s => s.circle))].sort((a,b) => a-b);
+            const circleContainer = document.getElementById('circle-filters');
+            circleContainer.innerHTML = circles.map(c => `
+                <button onclick="toggleCircleFilter('${c}')" id="filter-circ-${c}" 
+                        class="text-xs py-1.5 rounded border transition-all duration-150 ${c === 'ALL' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'}">
+                    ${c === 'ALL' ? 'Все' : c}
+                </button>
+            `).join('');
+        }
+
+        // РЕАКТИВНЫЙ РЕНДЕР ИНТЕРФЕЙСА
+        function render() {
+            const mainContent = document.getElementById('main-content-area');
+            
+            // Переключение видимости блоков управления сайдбара
+            const sidebarControls = document.getElementById('sidebar-spell-controls');
+            const racesControls = document.getElementById('sidebar-races-controls');
+            const classesControls = document.getElementById('sidebar-classes-controls');
+            
+            if (state.activeTab === 'rules') {
+                sidebarControls.classList.add('hidden');
+                racesControls.classList.add('hidden');
+                classesControls.classList.add('hidden');
+            } else if (state.activeTab === 'races') {
+                sidebarControls.classList.add('hidden');
+                racesControls.classList.remove('hidden');
+                classesControls.classList.add('hidden');
+            } else if (state.activeTab === 'classes') {
+                sidebarControls.classList.add('hidden');
+                racesControls.classList.add('hidden');
+                classesControls.classList.remove('hidden');
+            } else {
+                sidebarControls.classList.remove('hidden');
+                racesControls.classList.add('hidden');
+                classesControls.classList.add('hidden');
+            }
+
+            if (state.activeTab === 'rules') {
+                renderRules(mainContent);
+            } else if (state.activeTab === 'races') {
+                renderRaces(mainContent);
+            } else if (state.activeTab === 'classes') {
+                renderClasses(mainContent);
+            } else {
+                renderSpells(mainContent);
+            }
+
+            updateFilterUIActiveStates();
+        }
+
+        // Рендеринг Книги Заклинаний
+        function renderSpells(container) {
+            // 1. Фильтрация данных
+            let filtered = spellsData.filter(spell => {
+                const matchesSearch = spell.name.toLowerCase().includes(state.searchQuery.toLowerCase()) || 
+                                      spell.description.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+                                      spell.school.toLowerCase().includes(state.searchQuery.toLowerCase());
+                
+                // Если не выбраны стихии - показываем все, иначе только выбранные
+                const matchesElement = state.selectedElements.length === 0 || state.selectedElements.includes(spell.element);
+                
+                // Если не выбраны круги - показываем все, иначе только выбранные
+                const matchesCircle = state.selectedCircles.length === 0 || state.selectedCircles.map(c => c.toString()).includes(spell.circle.toString());
+                
+                const matchesFav = !state.onlyFavorites || state.favorites.includes(spell.id);
+
+                return matchesSearch && matchesElement && matchesCircle && matchesFav;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-20 border border-dashed border-slate-800 rounded-2xl bg-slate-950/20">
+                        <span class="text-4xl">🔮</span>
+                        <h3 class="text-lg font-magical text-amber-100/70 mt-4">Заклинания не обнаружены</h3>
+                        <p class="text-sm text-slate-500 mt-1">Попробуйте ослабить фильтры или изменить поисковый запрос</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // 2. Группировка данных
+            let groups = {};
+            if (state.groupBy === 'circle') {
+                filtered.forEach(spell => {
+                    const key = `Круг ${spell.circle}`;
+                    if (!groups[key]) groups[key] = [];
+                    groups[key].push(spell);
+                });
+            } else {
+                filtered.forEach(spell => {
+                    const key = `Стихия: ${spell.element}`;
+                    if (!groups[key]) groups[key] = [];
+                    groups[key].push(spell);
+                });
+            }
+
+            // 3. Генерация HTML структуры
+            let html = '';
+            for (let groupTitle in groups) {
+                html += `
+                    <div class="mb-10">
+                        <h2 class="text-lg font-magical font-bold tracking-wider text-amber-100/80 mb-4 border-b border-slate-800 pb-1 flex items-center gap-2">
+                            <span class="text-amber-500/60">✦</span> ${groupTitle} 
+                            <span class="text-xs font-mono font-normal text-slate-500">(${groups[groupTitle].length})</span>
+                        </h2>
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                            ${groups[groupTitle].map(spell => renderSpellCard(spell)).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        // Шаблон Карточки Заклинания
+        function renderSpellCard(spell) {
+            const isExpanded = state.expandedSpells.includes(spell.id);
+            const isFav = state.favorites.includes(spell.id);
+            const badgeColor = elementColors[spell.element] || "text-slate-400 bg-slate-900 border-slate-800";
+
+            return `
+                <div class="bg-[#111827]/60 hover:bg-[#151f33]/80 border ${isExpanded ? 'border-amber-600/40 shadow-md shadow-amber-950/10' : 'border-slate-800/80'} rounded-xl transition-all duration-200 overflow-hidden">
+                    <div class="p-4 flex items-center justify-between cursor-pointer select-none" onclick="toggleSpellExpand('${spell.id}')">
+                        <div class="flex items-center gap-3">
+                            <button onclick="event.stopPropagation(); toggleFavorite('${spell.id}')" class="text-lg focus:outline-none transition-transform active:scale-125">
+                                ${isFav ? '⭐' : '☆'}
+                            </button>
+                            <div>
+                                <h3 class="font-magical font-bold tracking-wide text-slate-200 group-hover:text-amber-200 text-sm md:text-base">${spell.name}</h3>
+                                <div class="flex gap-2 items-center mt-1">
+                                    <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded border ${badgeColor}">
+                                        ${spell.element}
+                                    </span>
+                                    <span class="text-xs text-slate-500 font-medium">${spell.school}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-4">
+                            <div class="text-right hidden sm:block">
+                                <p class="text-xs font-mono text-amber-300/90">${spell.cost}</p>
+                                <p class="text-[10px] text-slate-500 font-mono">${spell.range}</p>
+                            </div>
+                            <span class="text-slate-500 text-xs transform transition-transform duration-200 ${isExpanded ? 'rotate-180 text-amber-400' : ''}">▼</span>
+                        </div>
+                    </div>
+
+                    <div class="transition-all duration-300 ${isExpanded ? 'max-h-[500px] border-t border-slate-900/60' : 'max-h-0 overflow-hidden'} bg-slate-950/40">
+                        <div class="p-4 text-sm leading-relaxed text-slate-300 border-t border-slate-900">
+                            <div class="sm:hidden flex justify-between bg-slate-950 p-2 rounded-lg mb-3 border border-slate-900 text-xs font-mono">
+                                <span class="text-amber-400">${spell.cost}</span>
+                                <span class="text-slate-400">${spell.range}</span>
+                            </div>
+                            <p class="mb-3 font-light">${spell.description}</p>
+                            ${spell.flavor ? `<p class="text-xs italic text-slate-500 border-l-2 border-slate-800 pl-2 mt-2 font-serif">${spell.flavor}</p>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Рендеринг Справочника Правил
+        function renderRules(container) {
+            let filteredRules = rulesData.map(cat => {
+                let sections = cat.sections.filter(sec => 
+                    sec.title.toLowerCase().includes(state.searchQuery.toLowerCase()) || 
+                    sec.content.toLowerCase().includes(state.searchQuery.toLowerCase())
+                );
+                return { ...cat, sections };
+            }).filter(cat => cat.sections.length > 0);
+
+            if (filteredRules.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-20 border border-dashed border-slate-800 rounded-2xl bg-slate-950/20">
+                        <span class="text-4xl">📜</span>
+                        <h3 class="text-lg font-magical text-amber-100/70 mt-4">Правила не найдены</h3>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredRules.map((cat, catIdx) => `
+                <div class="mb-8">
+                    <h2 class="text-lg font-magical text-amber-200/90 font-bold tracking-wider mb-4 border-b border-slate-900 pb-2">${cat.category}</h2>
+                    <div class="flex flex-col gap-3">
+                        ${cat.sections.map((sec, secIdx) => {
+                            const uniqueId = `rule-${catIdx}-${secIdx}`;
+                            const isExpanded = state.expandedRules.includes(uniqueId);
+                            return `
+                                <div class="bg-[#111827]/40 border ${isExpanded ? 'border-amber-900/40' : 'border-slate-900'} rounded-xl overflow-hidden">
+                                    <div onclick="toggleRuleExpand('${uniqueId}')" class="p-4 bg-slate-950/40 hover:bg-slate-950/80 flex justify-between items-center cursor-pointer select-none">
+                                        <h3 class="text-sm font-semibold font-magical tracking-wide text-slate-200">${sec.title}</h3>
+                                        <span class="text-slate-500 text-xs transform transition-transform ${isExpanded ? 'rotate-180 text-amber-500' : ''}">▼</span>
+                                    </div>
+                                    <div class="transition-all duration-200 ${isExpanded ? 'max-h-[1000px]' : 'max-h-0 overflow-hidden'}">
+                                        <div class="p-4 text-sm text-slate-400 bg-slate-950/10 border-t border-slate-950 whitespace-pre-line leading-relaxed font-light">
+                                            ${sec.content}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Рендеринг Классов
+        function renderClasses(container) {
+            // 1. Фильтрация данных по поиску
+            let filtered = classesData.filter(cls => {
+                const matchesSearch = cls.name.toLowerCase().includes(state.searchQuery.toLowerCase()) || 
+                                      cls.description.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+                                      cls.features.toLowerCase().includes(state.searchQuery.toLowerCase());
+                return matchesSearch;
+            });
+
+            // Если ни один класс не выбран, выбираем первый
+            if (!state.selectedClass && filtered.length > 0) {
+                state.selectedClass = filtered[0].id;
+            }
+
+            const selectedClass = filtered.find(c => c.id === state.selectedClass) || filtered[0];
+
+            // Рендеринг списка классов в левой панели
+            const classList = document.getElementById('classes-list');
+            if (classList) {
+                if (filtered.length === 0) {
+                    classList.innerHTML = `
+                        <div class="text-xs text-slate-500 text-center py-4">
+                            Классы не найдены
+                        </div>
+                    `;
+                } else {
+                    classList.innerHTML = `
+                        <div class="text-[10px] text-slate-400 px-2 py-1 mb-2">
+                            ${filtered.length} класс${filtered.length % 10 === 1 && filtered.length !== 11 ? '' : filtered.length % 10 < 5 && filtered.length % 10 > 1 && (filtered.length < 10 || filtered.length > 20) ? 'а' : 'ов'}
+                        </div>
+                        ${filtered.map(cls => `
+                            <button 
+                                onclick="selectClass('${cls.id}')" 
+                                class="w-full text-left px-2 py-1.5 rounded transition-all duration-150 text-xs ${
+                                    state.selectedClass === cls.id 
+                                        ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40' 
+                                        : 'text-slate-300 hover:bg-slate-800/50'
+                                }">
+                                👤 ${cls.name}
+                            </button>
+                        `).join('')}
+                    `;
+                }
+            }
+
+            // Рендеринг описания класса в основной области
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-20 border border-dashed border-slate-800 rounded-2xl bg-slate-950/20">
+                        <span class="text-4xl">👤</span>
+                        <h3 class="text-lg font-magical text-amber-100/70 mt-4">Классы не обнаружены</h3>
+                        <p class="text-sm text-slate-500 mt-1">Попробуйте изменить поисковый запрос</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = selectedClass ? `
+                <!-- Заголовок и основная информация -->
+                <div class="bg-[#111827]/60 border border-amber-600/40 rounded-xl overflow-hidden shadow-md shadow-amber-950/10">
+                    <div class="bg-gradient-to-r from-slate-950 to-slate-900/50 p-6 border-b border-amber-900/30">
+                        <h2 class="text-2xl font-magical font-bold text-amber-100 mb-2">${selectedClass.name}</h2>
+                        <p class="text-xs text-slate-400 font-mono">ID: ${selectedClass.id}</p>
+                    </div>
+                    
+                    <!-- Описание -->
+                    <div class="p-6 border-b border-slate-900">
+                        <h3 class="text-sm font-magical font-bold text-amber-200 mb-3 flex items-center gap-2">
+                            <span>📖</span> Описание
+                        </h3>
+                        <p class="text-sm leading-relaxed text-slate-300">${selectedClass.description}</p>
+                    </div>
+
+                    <!-- Особенности -->
+                    <div class="p-6 border-b border-slate-900">
+                        <h3 class="text-sm font-magical font-bold text-amber-200 mb-3 flex items-center gap-2">
+                            <span>⭐</span> Особенности
+                        </h3>
+                        <div class="text-sm leading-relaxed text-slate-300 bg-slate-950/40 p-4 rounded-lg border border-slate-800">
+                            ${selectedClass.features.split('\n').map(line => line.trim()).filter(line => line).map(line => `<p class="mb-2">${line}</p>`).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Бонусы к характеристикам -->
+                    <div class="p-6 border-b border-slate-900">
+                        <h3 class="text-sm font-magical font-bold text-amber-200 mb-3 flex items-center gap-2">
+                            <span>💪</span> Бонусы к характеристикам
+                        </h3>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            ${Object.entries(selectedClass.bonuses).map(([stat, bonus]) => `
+                                <div class="bg-slate-950/40 border border-slate-800 rounded-lg p-3">
+                                    <p class="text-xs text-slate-400 font-mono mb-1">${stat}</p>
+                                    <p class="text-lg font-bold text-amber-400">+${bonus}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Требования -->
+                    <div class="p-6 border-b border-slate-900">
+                        <h3 class="text-sm font-magical font-bold text-amber-200 mb-3">Требования</h3>
+                        <p class="text-sm text-slate-300">${selectedClass.requirements}</p>
+                    </div>
+
+                    <!-- Способности -->
+                    <div class="p-6">
+                        <h3 class="text-sm font-magical font-bold text-amber-200 mb-4 flex items-center gap-2">
+                            <span>✨</span> Способности (${selectedClass.abilities.length})
+                        </h3>
+                        <div class="space-y-3">
+                            ${selectedClass.abilities.map((ability, idx) => `
+                                <div class="bg-slate-950/40 border border-slate-800 rounded-lg p-3 hover:border-amber-700/40 transition-all">
+                                    <div class="flex items-start gap-3">
+                                        <div class="flex-shrink-0 w-8 h-8 bg-amber-500/20 rounded-full flex items-center justify-center border border-amber-500/40">
+                                            <span class="text-xs font-bold text-amber-300">${ability.level}</span>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-semibold text-amber-300 mb-1">${ability.name}</p>
+                                            <p class="text-sm text-slate-200 leading-relaxed">${ability.description}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            ` : '';
+        }
+
+        // Рендеринг Архива Рас
+        function renderRaces(container) {
+            // 1. Фильтрация данных по поиску
+            let filtered = racesData.filter(race => {
+                const matchesSearch = race.name.toLowerCase().includes(state.searchQuery.toLowerCase()) || 
+                                      race.history.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+                                      race.features.toLowerCase().includes(state.searchQuery.toLowerCase());
+                return matchesSearch;
+            });
+
+            // Если ни одна раса не выбрана, выбираем первую
+            if (!state.selectedRace && filtered.length > 0) {
+                state.selectedRace = filtered[0].id;
+            }
+
+            const selectedRace = filtered.find(r => r.id === state.selectedRace) || filtered[0];
+
+            // Рендеринг списка рас в левой панели
+            const racesList = document.getElementById('races-list');
+            if (racesList) {
+                if (filtered.length === 0) {
+                    racesList.innerHTML = `
+                        <div class="text-xs text-slate-500 text-center py-4">
+                            Расы не найдены
+                        </div>
+                    `;
+                } else {
+                    racesList.innerHTML = `
+                        <div class="text-[10px] text-slate-400 px-2 py-1 mb-2">
+                            ${filtered.length} расс${filtered.length % 10 === 1 && filtered.length !== 11 ? 'а' : filtered.length % 10 < 5 && filtered.length % 10 > 1 && (filtered.length < 10 || filtered.length > 20) ? 'ы' : ''}
+                        </div>
+                        ${filtered.map(race => `
+                            <button 
+                                onclick="selectRace('${race.id}')" 
+                                class="w-full text-left px-2 py-1.5 rounded transition-all duration-150 text-xs ${
+                                    state.selectedRace === race.id 
+                                        ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40' 
+                                        : 'text-slate-300 hover:bg-slate-800/50'
+                                }">
+                                👤 ${race.name}
+                            </button>
+                        `).join('')}
+                    `;
+                }
+            }
+
+            // Рендеринг описания расы в основной области
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-20 border border-dashed border-slate-800 rounded-2xl bg-slate-950/20">
+                        <span class="text-4xl">👥</span>
+                        <h3 class="text-lg font-magical text-amber-100/70 mt-4">Расы не обнаружены</h3>
+                        <p class="text-sm text-slate-500 mt-1">Попробуйте изменить поисковый запрос</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = selectedRace ? `
+                <!-- Заголовок и основная информация -->
+                <div class="bg-[#111827]/60 border border-amber-600/40 rounded-xl overflow-hidden shadow-md shadow-amber-950/10">
+                    <div class="bg-gradient-to-r from-slate-950 to-slate-900/50 p-6 border-b border-amber-900/30">
+                        <h2 class="text-2xl font-magical font-bold text-amber-100 mb-2">${selectedRace.name}</h2>
+                        <p class="text-xs text-slate-400 font-mono">ID: ${selectedRace.id}</p>
+                    </div>
+                    
+                    <!-- История -->
+                    <div class="p-6 border-b border-slate-900">
+                        <h3 class="text-sm font-magical font-bold text-amber-200 mb-3 flex items-center gap-2">
+                            <span>📖</span> История
+                        </h3>
+                        <p class="text-sm leading-relaxed text-slate-300">${selectedRace.history}</p>
+                    </div>
+
+                    <!-- Особенности -->
+                    <div class="p-6 border-b border-slate-900">
+                        <h3 class="text-sm font-magical font-bold text-amber-200 mb-3 flex items-center gap-2">
+                            <span>⭐</span> Особенности
+                        </h3>
+                        <div class="text-sm leading-relaxed text-slate-300 bg-slate-950/40 p-4 rounded-lg border border-slate-800">
+                            ${selectedRace.features.split('\n').map(line => line.trim()).filter(line => line).map(line => `<p class="mb-2">${line}</p>`).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Уровни развития -->
+                    <div class="p-6">
+                        <h3 class="text-sm font-magical font-bold text-amber-200 mb-4 flex items-center gap-2">
+                            <span>📈</span> Уровни развития (${selectedRace.levels.length})
+                        </h3>
+                        <div class="space-y-3">
+                            ${selectedRace.levels.map((lvl, idx) => `
+                                <div class="bg-slate-950/40 border border-slate-800 rounded-lg p-3 hover:border-amber-700/40 transition-all">
+                                    <div class="flex items-start gap-3">
+                                        <div class="flex-shrink-0 w-8 h-8 bg-amber-500/20 rounded-full flex items-center justify-center border border-amber-500/40">
+                                            <span class="text-xs font-bold text-amber-300">${lvl.level}</span>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-xs text-slate-400 font-mono mb-1">Требование: ${lvl.requirement || 'Сразу при создании'}</p>
+                                            <p class="text-sm text-slate-200 leading-relaxed">${lvl.description}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            ` : '';
+        }
+    </script>
+
+    <script>
+        function switchTab(tab) {
+            state.activeTab = tab;
+            
+            const btnSpells = document.getElementById('tab-spells');
+            const btnRaces = document.getElementById('tab-races');
+            const btnClasses = document.getElementById('tab-classes');
+            const btnRules = document.getElementById('tab-rules');
+            
+            if(tab === 'spells') {
+                btnSpells.className = "px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-amber-500/10 text-amber-300 border border-amber-500/20 shadow-sm";
+                btnRaces.className = "px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200";
+                btnClasses.className = "px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200";
+                btnRules.className = "px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200";
+            } else if(tab === 'races') {
+                btnRaces.className = "px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-amber-500/10 text-amber-300 border border-amber-500/20 shadow-sm";
+                btnSpells.className = "px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200";
+                btnClasses.className = "px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200";
+                btnRules.className = "px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200";
+            } else if(tab === 'classes') {
+                btnClasses.className = "px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-amber-500/10 text-amber-300 border border-amber-500/20 shadow-sm";
+                btnSpells.className = "px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200";
+                btnRaces.className = "px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200";
+                btnRules.className = "px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200";
+            } else {
+                btnRules.className = "px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-amber-500/10 text-amber-300 border border-amber-500/20 shadow-sm";
+                btnSpells.className = "px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200";
+                btnRaces.className = "px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200";
+                btnClasses.className = "px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200";
+            }
+            render();
+        }
+
+        function selectRace(raceId) {
+            state.selectedRace = raceId;
+            render();
+        }
+
+        function selectClass(classId) {
+            state.selectedClass = classId;
+            render();
+        }
+
+        function handleSearch(val) {
+            state.searchQuery = val;
+            state.selectedRace = null; // Сбросить выбранную расу при поиске
+            render();
+        }
+
+        function setGroupBy(type) {
+            state.groupBy = type;
+            const gc = document.getElementById('group-circle');
+            const ge = document.getElementById('group-element');
+            
+            if(type === 'circle') {
+                gc.className = "text-xs py-1.5 rounded bg-slate-900 text-amber-300 font-medium shadow border border-slate-800";
+                ge.className = "text-xs py-1.5 rounded text-slate-400 hover:text-slate-200 font-medium";
+            } else {
+                ge.className = "text-xs py-1.5 rounded bg-slate-900 text-amber-300 font-medium shadow border border-slate-800";
+                gc.className = "text-xs py-1.5 rounded text-slate-400 hover:text-slate-200 font-medium";
+            }
+            render();
+        }
+
+        function toggleElementFilter(el) {
+            if (el === 'ALL') {
+                state.selectedElements = [];
+            } else {
+                if (state.selectedElements.includes(el)) {
+                    state.selectedElements = state.selectedElements.filter(e => e !== el);
+                } else {
+                    state.selectedElements.push(el);
+                }
+            }
+            render();
+        }
+
+        function toggleCircleFilter(c) {
+            if (c === 'ALL') {
+                state.selectedCircles = [];
+            } else {
+                const cNum = parseInt(c);
+                if (state.selectedCircles.includes(cNum)) {
+                    state.selectedCircles = state.selectedCircles.filter(circle => circle !== cNum);
+                } else {
+                    state.selectedCircles.push(cNum);
+                }
+            }
+            render();
+        }
+
+        function toggleOnlyFavorites() {
+            state.onlyFavorites = !state.onlyFavorites;
+            const btn = document.getElementById('fav-toggle');
+            const circle = btn.querySelector('div');
+            if(state.onlyFavorites) {
+                btn.classList.replace('bg-slate-800', 'bg-amber-600');
+                circle.classList.replace('bg-slate-400', 'bg-amber-100');
+                circle.style.transform = 'translateX(16px)';
+            } else {
+                btn.classList.replace('bg-amber-600', 'bg-slate-800');
+                circle.classList.replace('bg-amber-100', 'bg-slate-400');
+                circle.style.transform = 'translateX(0px)';
+            }
+            render();
+        }
+
+        function toggleFavorite(id) {
+            if(state.favorites.includes(id)) {
+                state.favorites = state.favorites.filter(fId => fId !== id);
+            } else {
+                state.favorites.push(id);
+            }
+            localStorage.setItem('grimoire_favs', JSON.stringify(state.favorites));
+            render();
+        }
+
+        function toggleSpellExpand(id) {
+            if(state.expandedSpells.includes(id)) {
+                state.expandedSpells = state.expandedSpells.filter(eId => eId !== id);
+            } else {
+                state.expandedSpells.push(id);
+            }
+            render();
+        }
+
+        function toggleRuleExpand(id) {
+            if(state.expandedRules.includes(id)) {
+                state.expandedRules = state.expandedRules.filter(eId => eId !== id);
+            } else {
+                state.expandedRules.push(id);
+            }
+            render();
+        }
+
+        function updateFilterUIActiveStates() {
+            // Стихии
+            const elements = ['ALL', ...new Set(spellsData.map(s => s.element))];
+            elements.forEach(el => {
+                const elBtn = document.getElementById(`filter-el-${el}`);
+                if(elBtn) {
+                    if(el === 'ALL' && state.selectedElements.length === 0) {
+                        elBtn.className = "text-xs px-2.5 py-1 rounded-md border transition-all duration-150 bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm shadow-amber-950/50";
+                    } else if(el !== 'ALL' && state.selectedElements.includes(el)) {
+                        elBtn.className = "text-xs px-2.5 py-1 rounded-md border transition-all duration-150 bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm shadow-amber-950/50";
+                    } else {
+                        elBtn.className = "text-xs px-2.5 py-1 rounded-md border transition-all duration-150 bg-slate-950 text-slate-400 border-slate-800/80 hover:border-slate-700";
+                    }
+                }
+            });
+
+            // Круги
+            const circles = ['ALL', ...new Set(spellsData.map(s => s.circle))];
+            circles.forEach(c => {
+                const cBtn = document.getElementById(`filter-circ-${c}`);
+                if(cBtn) {
+                    if(c === 'ALL' && state.selectedCircles.length === 0) {
+                        cBtn.className = "text-xs py-1.5 rounded border transition-all duration-150 bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm shadow-amber-950/50";
+                    } else if(c !== 'ALL' && state.selectedCircles.includes(parseInt(c))) {
+                        cBtn.className = "text-xs py-1.5 rounded border transition-all duration-150 bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm shadow-amber-950/50";
+                    } else {
+                        cBtn.className = "text-xs py-1.5 rounded border transition-all duration-150 bg-slate-950 text-slate-400 border-slate-800/80 hover:border-slate-700";
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

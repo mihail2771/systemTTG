@@ -1,0 +1,49 @@
+name: Deploy Mini-Site to Pages
+
+on:
+  # Скрипт будет запускаться при каждом пуше в ветку main
+  push:
+    branches: ["main"]
+  # Позволяет запустить деплой вручную из вкладки Actions
+  workflow_dispatch:
+
+# Устанавливаем права для работы с GITHUB_TOKEN
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Отменяем старые запуски, если пуши идут один за другим
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Шаг фильтрации: создаем временную папку и копируем ТОЛЬКО нужные файлы
+      - name: Prepare build artifacts
+        run: |
+          mkdir dist
+          cp index.html dist/
+          cp *.json dist/
+          echo "Файлы подготовленные к деплою:"
+          ls -la dist
+
+      # Загружаем отфильтрованную папку 'dist' как артефакт Pages
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      # Публикуем артефакт на серверах GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
