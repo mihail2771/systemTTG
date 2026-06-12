@@ -1,0 +1,33 @@
+# Зависимости (папка с библиотеками Node.js, её никогда не пушат в репозиторий)
+node_modules/
+jspm_packages/
+web_modules/
+
+# Логи ошибок (если скрипт упадет, логи останутся только у тебя)
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Настройки твоих редакторов кода (IDE)
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Системный мусор операционных систем
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Временные папки сборки (если тестируешь деплой локально)
+dist/
+build/
+out/
